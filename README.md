@@ -27,4 +27,4 @@ All under MIT Licensing, or very similar. More information, go check the Github 
 
 For now, not much, song conductors have been implemented and in game functionality is barely there. Some important classes have already been made like in Note.lua, Song.lua and others but don't expect to just jump in already and start playing because it didn't go that far yet.
 
-The plans for next versions and what's next can be seen here somewhere, the Issues and Pull Request tabs will be disabled until a playable version comes out so I avoid unnecessary headache and stress.
+The plans for next versions and what's next can be seen here somewhere, the Issues tab will be disabled until a playable version comes out so I avoid unnecessary headache and stress.
