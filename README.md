@@ -1,5 +1,5 @@
 # Funkin' With Löve2D
-Current version: 0.0.1a (01/06/22)
+Current version: 0.0.2 (01 / 10/ 22)
 
 Barebones of what could be a recreation of Friday Night Funkin' in Löve2D. Is there a reason for this to exist? You tell me, I'm just here to make this functional.
 
