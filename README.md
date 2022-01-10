@@ -8,7 +8,7 @@ Barebones of what could be a recreation of Friday Night Funkin' in Löve2D. Is t
 1. First, grab yourself a copy of Löve2D and install it on your computer, the version I'm using to develop this project is [version 11.4](https://github.com/love2d/love/releases/tag/11.4).
 2. Then, grab a [copy of the project](https://github.com/theDetourist/FunkinWithLove/archive/refs/heads/stable.zip) and drop it somewhere in your computer inside another folder like so.
 3. Go to where your **LOVE.exe** executable is (*usually in* **C:\Program Files\LOVE**), make a shortcut of it and drag it inside the folder you created to contain the folder FunkinWithLove.
-4. Drag the folder FunkinWithLove into the LOVE shortcut you created and the game should run.
+4. Drag the folder _game_ into the LOVE shortcut you created and the game should run.
 
 ## Libraries used
 
