@@ -23,8 +23,6 @@ All under MIT Licensing, or very similar. More information, go check the Github 
 — [Timer module from hump by vrld](https://github.com/vrld/hump) -- Yes, this one's also MIT  
 — [SYSL Text by SystemLogoff](https://github.com/SystemLogoff/SYSL-Text)  
 
-# What's In Store
+# Keeping Track
 
-For now, not much, song conductors have been implemented and in game functionality is barely there. Some important classes have already been made like in Note.lua, Song.lua and others but don't expect to just jump in already and start playing because it didn't go that far yet.
-
-The plans for next versions and what's next can be seen here somewhere, the Issues tab will be disabled until a playable version comes out so I avoid unnecessary headache and stress.
+You can keep track of the changes in this [Changelog](https://github.com/theDetourist/FunkinWithLove/wiki/Changelog) page, as well as future plans for the engine [here](https://github.com/users/theDetourist/projects/1).
