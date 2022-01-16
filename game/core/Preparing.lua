@@ -24,7 +24,7 @@ elseif love.filesystem.getInfo( 'userconf.ini' ) == nil or inifile.parse( 'userc
 	usershit.Personal.favBoyfriend = 'bf_default'
 	usershit.Personal.favGirlfriend = 'gf_default'
 	
-	usershit.Game.globalOffset = 60
+	usershit.Game.globalOffset = 0
 	
 	inifile.save( 'userconf.ini', usershit )
 	local test = inifile.parse( 'userconf.ini' )
@@ -32,5 +32,3 @@ elseif love.filesystem.getInfo( 'userconf.ini' ) == nil or inifile.parse( 'userc
 	test = nil
 	usershit = nil
 end
-
--- define useful functions and callbacks for later use

@@ -9,9 +9,11 @@ Note.assets = { }
 -- the middle of the strumline
 Note.Time = 0
 
--- time in milliseconds that the sustain ends in the song
 -- if note isn't sustained, this will always be zero
 Note.SustainTime = 0
+
+-- this will hold the sustain anim8 object, that's it
+Note.Sustain = { }
 
 Note.IsSustain = false
 
@@ -28,15 +30,18 @@ Note.MustHit = true
 -- self explanatory
 Note.WasHit = false
 
+-- arrow note itself
 Note.Visible = false
+
+-- hold note obviously
+Note.Sustain.Visible = true
 
 -- equivalent of Note.prevNote in the original code
 Note.Previous = nil
 
--- notes usually only have one animation that defines it
--- visually, like being an average arrow note, a hold
--- or a trail end
 Note.Animation = nil
+Note.Sustain.Animation = nil
+Note.Sustain.EndAnimation = nil
 
 Note.x = 0
 Note.frameWidth = 0
@@ -45,21 +50,20 @@ Note.y = 0
 Note.frameHeight = 0
 Note.height = 0
 
+Note.Sustain.frameWidth = 0
+Note.Sustain.width = 0
+Note.Sustain.frameHeight = 0
+Note.Sustain.height = 0
+Note.Sustain.scale = 1
+
 function createNote( time, lane, musthit, sustaintime, prevNote )
 	time = time or 1
+	lane = lane or 5
 	sustaintime = sustaintime or 0
-	lane = lane or 5 -- default to left arrow for player in must hit mode
 	musthit = musthit or false
 	prevNote = prevNote or Note
 	
 	-- print( time )
-	
-	-- taking into account previous note data and remember
-	-- sustains are treated as a SINGLE note, not multiple
-	-- like the og game, so they're different here
-	--if Note.Previous.SustainTime > 0 or Note.Previous.IsSustain then
-	--	Note.IsSustain = true
-	--end
 	
 	-- check if assets variable isn't null before doing these
 	-- operations, or else, the fcking game won't even compile
@@ -69,9 +73,9 @@ function createNote( time, lane, musthit, sustaintime, prevNote )
 	if Note.assets ~= nil then
 		local direction = 'purple'  -- left arrow as default
 		
-		-- print( time, lane )
-		
-		if lane == 2 or lane == 6 then -- down arrow
+		if lane == 1 or lane == 5 then
+			direction = 'purple'
+		elseif lane == 2 or lane == 6 then -- down arrow
 			direction = 'blue'
 		elseif lane == 3 or lane == 7 then -- up arrow
 			direction = 'green'
@@ -80,46 +84,62 @@ function createNote( time, lane, musthit, sustaintime, prevNote )
 		else
 			direction = 'purple'
 		end
-			
-		if not Note.IsSustain then
-			-- average arrow note
-			
-			animFrames = Note.assets.getFramesFromXML( 'NOTE_assets', direction )
-		elseif time ~= Note.Previous.SustainTime then
-			-- hold sustain
-			
+
+		if sustaintime > 0 then
 			animFrames = Note.assets.getFramesFromXML( 'NOTE_assets', direction .. ' hold piece' )
-		-- remember, Note.Previous when dealing with a sustain note
-		-- should always be an average arrow note, in this case
-		else
-			-- end trail sprite
+			
+			Note.Sustain.Animation = anim8.newAnimation( animFrames, 1 )
+			
+			Note.Sustain.frameWidth = animFrames.fW
+			Note.Sustain.width = animFrames.W
+			Note.Sustain.frameHeight = animFrames.fH
+			Note.Sustain.height = animFrames.H
+			Note.Sustain.AnimationName = direction .. ' hold piece'
 			
 			animFrames = Note.assets.getFramesFromXML( 'NOTE_assets', direction .. ' hold end' )
+			
+			Note.Sustain.EndAnimation = anim8.newAnimation( animFrames, 1 )
+			Note.Sustain.EndAnimation:flipV( )
+			Note.Sustain.EndAnimation:flipH( )
+			Note.Sustain.EndAnimationName = direction .. ' hold end'
 		end
-	end
-	
-	if anim8 ~= nil then
+		
+		animFrames = Note.assets.getFramesFromXML( 'NOTE_assets', direction )
+		
 		Note.width, Note.frameWidth, Note.height, Note.frameHeight = animFrames.W, animFrames.fW, animFrames.H, animFrames.fH
 		Note.Animation = anim8.newAnimation( animFrames, 1 )
-	else
-		print( 'anim8 is null, ANIM8 IS NULL' )
 	end
 	
-	return setmetatable(
-	{
-		Time = time,
-		SustainTime = sustaintime,
-		Lane = lane,
-		IsSustain = false,
-		CanBeHit = true,
-		MustHit = musthit,
-		WasHit = false,
-		Visible = false,
-		Previous = prevNote,
-		Animation = Note.Animation,
-		x = 0,
-		frameWidth = Note.frameWidth,
-		y = 0,
-		frameHeight = Note.frameHeight
-	}, Notes)
+	local finalNote = { }
+	finalNote.Time = time
+	finalNote.SustainTime = sustaintime
+	finalNote.Sustain = shallowcopy( Note.Sustain )
+	finalNote.Lane = lane
+	finalNote.IsSustain = false
+	finalNote.CanBeHit = true
+	finalNote.MustHit = musthit
+	finalNote.WasHit = false
+	finalNote.Visible = false
+	finalNote.Previous = prevNote
+	finalNote.Animation = Note.Animation
+	finalNote.x = 0
+	finalNote.frameWidth = Note.frameWidth
+	finalNote.y = 0
+	finalNote.frameHeight = Note.frameHeight
+	
+	return setmetatable( finalNote, Notes )
+end
+
+function shallowcopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in pairs(orig) do
+            copy[orig_key] = orig_value
+        end
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
 end

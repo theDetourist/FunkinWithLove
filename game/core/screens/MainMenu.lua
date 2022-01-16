@@ -1,5 +1,4 @@
 local roomy = require('libs.roomy')
-local flux = require('libs.flux')
 
 local mainmenu = { }
 
