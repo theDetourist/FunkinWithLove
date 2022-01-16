@@ -194,11 +194,10 @@ function validateThisShit( trash )
 			
 			table.insert( Song.Notes,
 				createNote(
-					-- baking the timings with the offsets already because why not
 					math.abs( note[ 1 ] ),
 					trunote,
 					( trunote >= 5 and true or false ),		-- must hit now describes wether note is player's or not
-					note[ 3 ] / Song.Conductor.stepCrochet,
+					note[ 3 ],
 					( index > 1 and Song.Notes[ index - 1 ] or Song.Notes[ index ] )
 				)
 			)
