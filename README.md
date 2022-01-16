@@ -20,8 +20,9 @@ All under MIT Licensing, or very similar. More information, go check the Github 
 — [inifile by bartbes](https://github.com/bartbes/inifile/) -- Simplified BSD License, which again, not that different.  
 — [json.lua by rxi](https://github.com/rxi/json.lua)  
 — [roomy by tesselode](https://github.com/tesselode/roomy/)  
-— [Timer module from hump by vrld](https://github.com/vrld/hump) -- Yes, this one's also MIT  
+— [Timer and Camera modules from hump by vrld](https://github.com/vrld/hump) -- Yes, this one's also MIT  
 — [SYSL Text by SystemLogoff](https://github.com/SystemLogoff/SYSL-Text)  
+— [deep by Nikaoto](https://github.com/Nikaoto/deep)
 
 # Keeping Track
 
