@@ -1,5 +1,7 @@
 # Funkin' With Löve2D
-Current version: 0.0.2 (01 / 10/ 22)
+Current version: 0.0.3 (01 / 16/ 22)
+
+![Functional gameplay with early sustains as of 0.0.3](https://user-images.githubusercontent.com/44783518/149680749-451e3b54-1523-4dce-9085-ba1daa359ab9.gif)
 
 Barebones of what could be a recreation of Friday Night Funkin' in Löve2D. Is there a reason for this to exist? You tell me, I'm just here to make this functional.
 
