@@ -25,15 +25,14 @@ function conductor:update(dt)
 	
 	updateCrochets( )
 	
-	-- print( conductor.curStep )
 	if oldStep ~= conductor.curStep and conductor.curStep > 0 then
-		conductor.stepHit()
+		conductor:stepHit( )
 	end
 end
 
 function conductor:stepHit( )
 	if conductor.curStep % 4 == 0 then
-		conductor:beatHit()
+		conductor:beatHit( )
 	end
 end
 

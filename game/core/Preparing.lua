@@ -1,7 +1,3 @@
-local utf8 = require( "utf8" )
-
-local inifile = require( 'libs.inifile' )
-
 -- make missing directories
 dirs = {
 	"metadata"
@@ -17,14 +13,22 @@ elseif love.filesystem.getInfo( 'userconf.ini' ) == nil or inifile.parse( 'userc
 	local usershit = { }
 	usershit.Personal = { }
 	usershit.Game = { }
+	usershit.Keys = { }
 	
 	-- player name so they feel good about themselves
 	usershit.Personal.name = 'Detoria'
 	usershit.Personal.favDifficulty = 'hard'
-	usershit.Personal.favBoyfriend = 'bf_default'
-	usershit.Personal.favGirlfriend = 'gf_default'
+	usershit.Personal.favBoyfriend = 'none'
+	usershit.Personal.favGirlfriend = 'none'
 	
 	usershit.Game.globalOffset = 0
+	usershit.Game.scrollSpeed = 2
+	usershit.Game.downScroll = true
+	
+	usershit.Keys.leftArrow = 'left'
+	usershit.Keys.downArrow = 'down'
+	usershit.Keys.upArrow = 'up'
+	usershit.Keys.rightArrow = 'right'
 	
 	inifile.save( 'userconf.ini', usershit )
 	local test = inifile.parse( 'userconf.ini' )
