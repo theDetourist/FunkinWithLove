@@ -52,22 +52,24 @@ if love then
 	defaultBackend = "love"
 end
 
-function inifile.parse(name, backend)
+function inifile.parse( file, backend )
 	backend = backend or defaultBackend
 	local t = {}
 	local section
 	local comments = {}
 	local sectionorder = {}
 	local cursectionorder
-
-	for line in backends[backend].lines(name) do
+	
+	-- slight change to account for direct file reading
+	-- for now, just reading bcz not in the mood to do the whole thing
+	for line in ( type( file ) == 'userdata' and file:lines( ) or backends[backend].lines( file ) ) do
 
 		-- Section headers
 		local s = line:match("^%[([^%]]+)%]$")
 		if s then
 			section = s
 			t[section] = t[section] or {}
-			cursectionorder = {name = section}
+			cursectionorder = { file = section }
 			table.insert(sectionorder, cursectionorder)
 		end
 
