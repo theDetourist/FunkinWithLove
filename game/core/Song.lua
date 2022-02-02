@@ -1,8 +1,6 @@
-local json = require( 'libs.json' )
 require( 'core.Note' )
 
 Song = { }
-Song.Conductor = require('core.Conductor')
 
 --[[ ------------------------------------------------------------------------------------- ]] --
 
@@ -34,6 +32,7 @@ Song.Metadata.Opponent = Song.Opponent
 Song.Metadata.Girlfriend = Song.Girlfriend
 Song.Metadata.Stage = Song.Stage
 Song.Metadata.Offset = 0
+Song.Metadata.Icon = nil
 
 --[[ ------------------------------------------------------------------------------------- ]] --
 
@@ -48,7 +47,7 @@ function Song.new( )
 end
 
 -- json > name of the file, clove prolly took care of loading it already
-function Song.loadFromJSON( songshit )
+function Song.loadFromJSON( songshit, song )
 	songshit = songshit or nil
 	
 	if songshit == nil then
@@ -57,8 +56,34 @@ function Song.loadFromJSON( songshit )
 		local shit, _ = songshit:read( )
 		local jSongData = json.decode( shit )
 		
+		Song.loadSongMetadata( song )
+		
 		-- index all variables in json to proper ones when returning
 		return validateThisShit( jSongData )
+	end
+end
+
+-- to freeplay or whatever
+function Song.loadSongMetadata( songshit )
+	songshit = songshit or nil
+	
+	if songshit == nil then
+		print( 'Metadata file not found, shit.' )
+	else
+		local metadata = inifile.parse( 'data/charts/' .. songshit .. '/' .. songshit .. '.ini' )
+		
+		if metadata == nil then return print( 'File not found, dude...' ) end
+		
+		Song.Metadata.Name = metadata[ 'Metadata' ][ 'Name' ]
+		Song.Metadata.ScrollSpeed = metadata[ 'Metadata' ][ 'ScrollSpeed' ]
+		Song.Metadata.Player = metadata[ 'Metadata' ][ 'Player' ]
+		Song.Metadata.Opponent = metadata[ 'Metadata' ][ 'Opponent' ]
+		Song.Metadata.Girlfriend = metadata[ 'Metadata' ][ 'Girlfriend' ]
+		Song.Metadata.Stage = metadata[ 'Metadata' ][ 'Stage' ]
+		Song.Metadata.Offset = metadata[ 'Metadata' ][ 'Offset' ]
+		
+		-- taking care of the icon that shows up in freeplay and ingame
+		Song.Metadata.Icon = metadata[ 'Metadata' ][ 'Icon' ]
 	end
 end
 
@@ -134,10 +159,8 @@ function validateThisShit( trash )
 	-- main var, "song":, "notes":, first section inside notes "sectionNotes":,
 	-- first kinda note (view Note.lua) type inside first "sectionNotes": then at last,
 	-- the value at the Y axis where the note is meant to be drawn
-	-- which can actually be read as time in milliseconds if divided by / .5
 	
 	-- sustain length can also be read in milliseconds if convenient
-	
 	
 	-- so, to create a note properly, we'd do
 	
@@ -152,8 +175,6 @@ function validateThisShit( trash )
 	
 	
 	-- ]]
-	
-	-- V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V V
 	
 	-- print( trash[ 'song' ][ 'notes' ][ 1 ][ 'mustHitSection' ] )
 	
@@ -196,7 +217,7 @@ function validateThisShit( trash )
 				createNote(
 					math.abs( note[ 1 ] ),
 					trunote,
-					( trunote >= 5 and true or false ),		-- must hit now describes wether note is player's or not
+					( trunote >= 5 and true or false ),		-- must hit now describes whether note is player's or not
 					note[ 3 ],
 					( index > 1 and Song.Notes[ index - 1 ] or Song.Notes[ index ] )
 				)

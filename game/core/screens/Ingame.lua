@@ -1,20 +1,11 @@
-utf8 = require( 'utf8' )
-
-roomy = require('libs.roomy')
-Timer = require('libs.timer')
-Text = require('libs.SYSL-Text.slog-text')
-anim8 = require( 'libs.anim8' )
-inifile = require( 'libs.inifile' )
-deep = require( 'libs.deep' )
-Camera = require( 'libs.camera' )
-
 require( 'core.Song' ).new( )
 
 --[[ -------------------------------------- ]] --
 
 local ingame = { }
 
-ingame.curSong = 'endless'
+ingame.curChart = 'stress-hard'
+ingame.curSong = 'stress'
 ingame.Stage = nil					-- will hold the stage assets and logic later
 ingame.ready = false
 ingame.paused = false
@@ -22,12 +13,14 @@ ingame.setForRestart = false		-- used to stop everything and prepare for hard re
 ingame.notesHit = 0
 ingame.cam = Camera( 0, 0 )
 ingame.cam.focus = { }
-ingame.cam.focus.x ,ingame.cam.focus.y = curr_width / 2, curr_height / 2
+ingame.cam.focus.x, ingame.cam.focus.y = curr_width / 2, curr_height / 2
+ingame.cam.focus.zoom = 1
+ingame.keys = { }
+ingame.active = false				-- to make sure that no logic is processed while in different scenes
 
 -- gameplay shit
 ingame.score = 0
 ingame.health = 100
-
 
 -- UI shit
 ingame.UI = { }
@@ -35,8 +28,6 @@ ingame.UI = { }
 Fonts = { }							-- needed since clove and sysl-text don't seem to like each other very much
 
 --[[ -------------------------------------- ]] --
-
-assets = { }
 
 local vocalShit = nil
 local instrumentalShit = nil
@@ -56,11 +47,15 @@ local rightArrow = { }
 
 --[[ -------------------------------------- ]] --
 
+-- current beat handler for this scene
+local beatHandler
+local beatz = 0
+
+--[[ -------------------------------------- ]] --
+
 function ingame:enter( previous, ... )
-	assets = select( 1, ... )
-	Note.assets = assets
-	
-	ingame.curSong = select( 2, ... ) or ingame.curSong
+	ingame.curChart = select( 1, ... ) or ingame.curChart
+	ingame.curSong = ingame.curChart:sub( 0, lastIndexOf( ingame.curChart, '-' ) - 1 )
 	
 	--[[ -------------------------------------- ]] --
 	
@@ -68,11 +63,13 @@ function ingame:enter( previous, ... )
 	
 	--[[ -------------------------------------- ]] --
 	
-	Song.Conductor.bpm = 155
+	Conductor.bpm = 155
 	
 	Timer.after( 1,
 		function( )
+			assets.songs[ ingame.curSong .. '_inst' ]:seek( 0 )
 			assets.songs[ ingame.curSong .. '_inst' ]:play( )
+			assets.songs[ ingame.curSong .. '_voices' ]:seek( 0 )
 			assets.songs[ ingame.curSong .. '_voices' ]:play( )
 		end
 	)
@@ -119,25 +116,38 @@ function ingame:enter( previous, ... )
 	
 	--[[ -------------------------------------- ]] --
 	
-	Song.Conductor.songPos = -5000
+	Conductor.songPos = -5000
 	
-	local song = Song.loadFromJSON( assets.charts[ 'endless-hard' ] )
+	local song = Song.loadFromJSON( assets.charts[ ingame.curChart ], ingame.curSong )
 	
-	-- TODO RQ TOO: make this shit down here mimic generateSong from
-	-- og game, the saving of the notes in Note.lua format is already
-	-- over with... hopefully
 	makeMagic( song )
 	
-	ingame.Stage = require( 'data/stages/fuckery' )
+	ingame.Stage = require( 'data/stages/' .. Song.Metadata.Stage )
+	
+	print( 'Song name: ' .. Song.Metadata.Name )
 	
 	--[[ -------------------------------------- ]] --
+	
+	Event.hook( Conductor, { 'beatHit' } )
+	
+	--[[ -------------------------------------- ]] --
+	
+	local usershit = inifile.parse( 'userconf.ini' )
+	
+	table.insert( ingame.keys, usershit[ 'Keys' ][ 'leftArrow' ] )
+	table.insert( ingame.keys, usershit[ 'Keys' ][ 'downArrow' ] )
+	table.insert( ingame.keys, usershit[ 'Keys' ][ 'upArrow' ] )
+	table.insert( ingame.keys, usershit[ 'Keys' ][ 'rightArrow' ] )
+	
+	ingame.active = true
 end
 
-function ingame:update(dt)
-	if ingame.paused then return end
+function ingame:update( dt )
+	if ingame.paused or not ingame.active then return end
 	
 	-- update libraries
 	Timer.update( dt )
+	flux.update( dt )
 	
 	ingame.Stage.onUpdate( dt )
 	
@@ -145,6 +155,7 @@ function ingame:update(dt)
 	-- in focus
 	local dx, dy = ingame.cam.focus.x - ingame.cam.x, ingame.cam.focus.y - ingame.cam.y
 	ingame.cam:move( dx / 2, dy / 2 )
+	ingame.cam:zoomTo( ingame.cam.focus.zoom )
 	
 	--[[ -------------------------------------- ]] --
 	
@@ -169,8 +180,8 @@ function ingame:update(dt)
 		assets.songs[ ingame.curSong .. '_voices' ]:seek( assets.songs[ ingame.curSong .. '_inst' ]:tell( ) )
 		
 		-- then update conductor based on the instrumental as well
-		Song.Conductor.songPos = ( assets.songs[ ingame.curSong .. '_inst' ]:tell( ) * 1000 )
-		Song.Conductor:update( dt )
+		Conductor.songPos = ( assets.songs[ ingame.curSong .. '_inst' ]:tell( ) * 1000 )
+		Conductor:update( dt )
 	end
 	
 	-- actual game logic, GO
@@ -206,10 +217,10 @@ function ingame:update(dt)
 				
 				-- actual juicy meat of hitting notes
 				if Song.Notes[ index ].MustHit then
-					local time = Song.Notes[ index ].Time - Song.Conductor.offset
+					local time = Song.Notes[ index ].Time - Conductor.offset
 					
-					if time > ( Song.Conductor.songPos - Song.Conductor.safeFramesOffset * 2 )
-					and time < ( Song.Conductor.songPos + Song.Conductor.safeFramesOffset * 0.5 )
+					if time > ( Conductor.songPos - Conductor.safeFramesOffset * 2 )
+					and time < ( Conductor.songPos + Conductor.safeFramesOffset * 0.5 )
 					then
 						Song.Notes[ index ].CanBeHit = true
 					else
@@ -218,7 +229,7 @@ function ingame:update(dt)
 				end
 				
 				-- up or down, you decide
-				Song.Notes[ index ].y = playerArrows.y / playerArrows.scale + 0.45 * ( Song.Conductor.songPos - Song.Notes[ index ].Time ) * 2.5
+				Song.Notes[ index ].y = playerArrows.y / playerArrows.scale + 0.45 * ( Conductor.songPos - Song.Notes[ index ].Time ) * 2.5
 			end
 		else break
 		end
@@ -228,9 +239,11 @@ function ingame:update(dt)
 end
 
 function ingame:leave(next, ...)
+	ingame.active = false
 end
 
 function ingame:draw()
+	if not ingame.active then return end
 	if ingame.paused then love.graphics.print("STOP THAT SHIT", curr_width / 2 - 50, curr_height / 2) return end
 	
 	love.graphics.setColor( 1, 0, 0 )
@@ -261,8 +274,8 @@ function ingame:draw()
 			love.graphics.setFont( Fonts.vcr )
 			
 			love.graphics.print( 'FPS: ' .. love.timer.getFPS( ), 0, 150 + 10 / 0.05, 0, 1, 1 )
-			love.graphics.print( 'Position: ' .. Song.Conductor.songPos, 0, 150 + 30 / 0.05, 0, 1, 1 )
-			love.graphics.print( 'Offset: ' .. Song.Conductor.offset, 0, 150 + 50 / 0.05, 0, 1, 1 )
+			love.graphics.print( 'Position: ' .. Conductor.songPos, 0, 150 + 30 / 0.05, 0, 1, 1 )
+			love.graphics.print( 'Offset: ' .. Conductor.offset, 0, 150 + 50 / 0.05, 0, 1, 1 )
 			love.graphics.print( 'Hit: ' .. ingame.notesHit, 0, 150 + 70 / 0.05, 0, 1, 1 )
 			
 			love.graphics.pop( )
@@ -443,32 +456,42 @@ function ingame:draw()
 	
 	deep.execute( )
 	
+	love.graphics.push( )
+	
+	love.graphics.scale( 0.08 )
+	
+	love.graphics.setFont( assets.fonts[ 'vcr' ] )
+	
+	-- information about the engine
+	outlinedText( 'Funkin\' ( 0.1b BETA ) with Löve2D ( 11.4 )', 5 / 0.08, curr_height / 0.08 - love.graphics.getFont( ):getHeight( ) - 5 )
+	
+	love.graphics.pop( )
+	
 	ingame.cam:detach( )
 end
 
 function ingame:keypressed( key, scancode, isrepeat )
+	if not ingame.active then return end
+	
 	ingame.Stage.onKeyPress( key, isrepeat )
 	
 	-- HERE WE GO
-	if ( key == 'a' or key == 's' or key == 'kp4' or key == 'kp5' ) and not isrepeat then
-	
-		-- hardcoded for now, change later, fool
-		local keyz = { 'a', 's', 'kp4', 'kp5' }
+	if table.contains( ingame.keys, key ) and not isrepeat then
 		
 		-- default to pressed animation when not hitting a note
-		if key == 'a' then
+		if key == ingame.keys[ 1 ] then
 			playerArrows[ 1 ].curAnim = 'Pressed'
 			playerArrows[ 1 ][ 'Pressed' ]:gotoFrame( 1 )
 			playerArrows[ 1 ][ 'Pressed' ]:resume( )
-		elseif key == 's' then
+		elseif key == ingame.keys[ 2 ] then
 			playerArrows[ 2 ].curAnim = 'Pressed'
 			playerArrows[ 2 ][ 'Pressed' ]:gotoFrame( 1 )
 			playerArrows[ 2 ][ 'Pressed' ]:resume( )
-		elseif key == 'kp4' then
+		elseif key == ingame.keys[ 3 ] then
 			playerArrows[ 3 ].curAnim = 'Pressed'
 			playerArrows[ 3 ][ 'Pressed' ]:gotoFrame( 1 )
 			playerArrows[ 3 ][ 'Pressed' ]:resume( )
-		elseif key == 'kp5' then
+		elseif key == ingame.keys[ 4 ] then
 			playerArrows[ 4 ].curAnim = 'Pressed'
 			playerArrows[ 4 ][ 'Pressed' ]:gotoFrame( 1 )
 			playerArrows[ 4 ][ 'Pressed' ]:resume( )
@@ -497,7 +520,7 @@ function ingame:keypressed( key, scancode, isrepeat )
 				-- now on are 5 and above, not very useful so we do this
 				local trueLane = note.Lane - 4
 				
-				if keyz[ trueLane ] ~= nil and keyz[ trueLane ] == key then
+				if ingame.keys[ trueLane ] ~= nil and ingame.keys[ trueLane ] == key then
 					-- print( math.abs( note.Time ) )
 					
 					for idx = index + 1, #Song.Notes do
@@ -507,9 +530,8 @@ function ingame:keypressed( key, scancode, isrepeat )
 						end
 					end
 					
-					if not table.contains( fuckThisNote, index ) then
-						playerArrows[ trueLane ].curAnim = 'Hit'
-						goodNoteHit( Song.Notes[ index ] )
+					if not table.contains( fuckThisNote, index ) and not table.contains( possibleHits, index ) then
+						table.insert( possibleHits, index )
 					end
 				end
 			end
@@ -522,18 +544,27 @@ function ingame:keypressed( key, scancode, isrepeat )
 			end
 		end
 		
+		if possibleHits ~= nil and #possibleHits > 0 then
+			local trueLane = Song.Notes[ possibleHits[ 1 ] ].Lane - 4
+			
+			playerArrows[ trueLane ].curAnim = 'Hit'
+			goodNoteHit( Song.Notes[ possibleHits[ 1 ] ] )
+			possibleHits = { }
+		end
+		
 	--[[ -------------------------------------- ]] --
+	
     elseif key == 'kp+' then
-		Song.Conductor.offset = Song.Conductor.offset + 1
+		Conductor.offset = Conductor.offset + 1
 	elseif key == 'kp-' then
-		Song.Conductor.offset = Song.Conductor.offset - 1
+		Conductor.offset = Conductor.offset - 1
 	elseif key == 'f8' and ingame.setForRestart == false then
 		ingame.setForRestart = true
 		
 		FUNISINFINITE( )
 		
 		local usershit = inifile.parse( 'userconf.ini' )
-		usershit[ 'Game' ][ 'globalOffset' ] = Song.Conductor.offset
+		usershit[ 'Game' ][ 'globalOffset' ] = Conductor.offset
 		
 		inifile.save( 'userconf.ini', usershit )
 		
@@ -553,30 +584,39 @@ function ingame:keypressed( key, scancode, isrepeat )
 end
 
 function ingame:keyreleased( key )
-	if key == 'a' or 's' or 'num4' or 'num5' then
-		if key == 'a' then
+	if not ingame.active then return end
+
+	if table.contains( ingame.keys, key ) then
+		if key == ingame.keys[ 1 ] then
 			playerArrows[ 1 ].curAnim = 'Idle'
 			
-		elseif key == 's' then
+		elseif key == ingame.keys[ 2 ] then
 			playerArrows[ 2 ].curAnim = 'Idle'
 			
-		elseif key == 'kp4' then
+		elseif key == ingame.keys[ 3 ] then
 			playerArrows[ 3 ].curAnim = 'Idle'
 			
-		elseif key == 'kp5' then
+		elseif key == ingame.keys[ 4 ] then
 			playerArrows[ 4 ].curAnim = 'Idle'
 			
 		end
 	end
 end
 
-local sickBeatz = 0
-function Song.Conductor:beatHit( )
-	if sickBeatz % 2 == 0 then
-		-- print( 'HEY' )
+beatHandler = Event.on( 'beatHit',
+	function( )
+		if not ingame.active then return end
+		
+		beatz = beatz + 1
+		
+		if beatz % 2 == 0 then
+			flux.to( ingame.cam.focus, 0.05, { zoom = 1.01 } )
+			:ease( 'cubicinout' )
+			:after( ingame.cam.focus, 0.05, { zoom = 1 } )
+			:ease( 'cubicinout' )
+		end
 	end
-	sickBeatz = sickBeatz + 1
-end
+)
 
 --[[ -------------------------------------- ]] --
 
@@ -602,8 +642,8 @@ function makeMagic( shit )
 	if shit ~= nil then
 		local usershit = inifile.parse( 'userconf.ini' )
 		
-		Song.Conductor.bpm = shit.BPM
-		Song.Conductor.offset = usershit[ 'Game' ][ 'globalOffset' ]
+		Conductor.bpm = shit.BPM
+		Conductor.offset = usershit[ 'Game' ][ 'globalOffset' ] + Song.Metadata.Offset
 		
 		usershit = nil
 		
@@ -616,7 +656,7 @@ function makeMagic( shit )
 		)
 		
 		for index = 1, #Song.Notes do
-			Song.Notes[ index ].Time = Song.Notes[ index ].Time + Song.Conductor.offset
+			Song.Notes[ index ].Time = Song.Notes[ index ].Time + Conductor.offset
 		end
 		
 		ingame.ready = true

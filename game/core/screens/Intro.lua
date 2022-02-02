@@ -1,58 +1,11 @@
-local roomy = require( 'libs.roomy' )
-local Timer = require( 'libs.timer' )
-local Text = require( 'libs.SYSL-Text.slog-text' )
-local anim8 = require( 'libs.anim8' )
-local Conductor = require( 'core.Conductor' )
-
--- necessary for roomy to work
 local intro = { }
+intro.active = false
 
--- holds all assets loaded in the game as reference from main.lua
-local assets = { }
+local introCanvas, pressStartCanvas = love.graphics.newCanvas( ), love.graphics.newCanvas( )
 
--- holds all animated objects to update their animations later
--- ABSOLUTELY necessary to have them animate, if they're not in this
--- table, they'll just be a static image
-local animatedSprites = { }
-
--- canvases for later use, not the same as what roomy does
-local introShit = love.graphics.newCanvas()
-local pressStart = love.graphics.newCanvas()
-
--- used to detect if player wants to hurry the fck up, if so, skip intro
-local HURRYTHEFUCKUP = false -- he said calmly
 local pressedStart = false
+local setForTransition = false
 
--- tween shit
---          started    r  g  b  a      tween
-local logoData = { 0, {1, 1, 1, 0}, nil}
-logoData.size = 0.5
-
--- ask and you'll get shot, swear to god
-function getTrueCenterForDrawable( width, height )
-	local ofx, ofy = width * .5, height * .5
-	
-	return ( ( curr_width - width ) / 2 ) + ofx, ( ( curr_height - height ) / 2 ) + ofy, ofx, ofy
-end
-
---[[ -------------------------------------- ]] --
-
--- make these a table so they can hold more than one animation
-
--- so the way you animate these is you make a key with the name of the animation
--- like funkyGF[ 'Idle' ] and add the animation to it having a temporary variable
--- to hold the frames with getFramesFromXML, and then creating the animation
--- to the key you created like funkyGF[ 'Idle' ]
--- set the current anim to play with variable.curAnim = 'anim' like funkyGF.curAnim = 'Idle'
-
--- then, in love.draw or any other callback that draws stuff to the screen, use
--- variable[ variable.curAnim ]:draw( ), like funkyGF[ funkyGF.curAnim ]:draw( )
-
-local funkyGF = { }
-
---[[ -------------------------------------- ]] --
-
--- cringy intro texts
 local cringyIntros = {
 	'shoutouts to tom fulp[newline][waitforinput]lmao',
 	'Ludum dare[newline][waitforinput]extraordinaire',
@@ -97,240 +50,319 @@ local cringyIntros = {
 	'bonk[newline][waitforinput]get in the discord call'
 }
 
+local introTxt, startTxt
+
+-- current beat handler for this scene
+local beatHandler
+local beatz = 0
+
+-- love logo
+local loveData = { false, assets.images[ 'love' ], alpha = 1 }
+local stressedData = {
+	false,
+	Emoji = { scale = 0.15, image = assets.images[ 'Stressed_Emoji' ] },
+	Hands = { scale = 0.15, alpha = 0, image = assets.images[ 'cmere' ] }
+}
+
+local logoData = { scale = 0.5 }
+
 function intro:enter( previous, ... )
-	curr_width, curr_height = love.graphics.getDimensions()
-	
-	-- for debugging purposes... i think
-	assets = select( 1, ... )
-	
-	--[[ -------------------------------------- ]] --
-	
-	-- holdup, did someone said something about getting freaky????
 	Conductor.bpm = 155
-	curSong = 'endless'
 	
-	-- play both because why not
-	assets.songs[ curSong .. '_inst' ]:play( )
-	assets.songs[ curSong .. '_voices' ]:play( )
+	assets.songs[ 'endless_inst' ]:setLooping( true )
+	assets.songs[ 'endless_inst' ]:play( )
+	assets.songs[ 'endless_voices' ]:setLooping( true )
+	assets.songs[ 'endless_voices' ]:play( )
 	
-	--[[ -------------------------------------- ]] --
-	
-	introText = Text.new('center',
+	introTxt = Text.new('center',
 	{
-		color = {1, 1, 1, 1},
-		shadow_color = {0.5, 0.5, 1, 0.4},
-		font = assets.fonts['vcr'],
+		color = { 1, 1, 1, 1 },
+		shadow_color = { 0.5, 0.5, 1, 0.4 },
+		font = assets.fonts[ 'vcr' ],
+		character_sound = false,
+		print_speed = 0.01,
+	})
+	introTxt.y = ( ( curr_height / 2 / 0.1 ) - introTxt.get.height / 2 )
+	
+	introTxt:send(  ' ' )
+	
+	startTxt = Text.new('center',
+	{
+		color = { 1, 1, 1, 1 },
+		shadow_color = { 0.5, 0.5, 1, 0.4 },
+		font = assets.fonts[ 'vcr' ],
 		character_sound = false,
 		print_speed = 0.01,
 	})
 	
-	introText:send(  ' ' )
+	startTxt:send( '[skip][bounce]< Press Space or Enter to Start >[/bounce]' )
 	
-	pressStartTxt = Text.new('center',
-	{
-		color = {1, 1, 1, 1},
-		shadow_color = {0.5, 0.5, 1, 0.4},
-		font = assets.fonts['vcr'],
-		character_sound = false,
-		print_speed = 0.01,
-	})
+	--[[---------------------------------------------------]]--
 	
-	pressStartTxt:send( '[skip][bounce]< Press Space or Enter to Start >[/bounce]' )
-	
-	--[[ -------------------------------------- ]] --
-	
-	local animFrames = assets.getFramesFromXML( 'gfDanceTitle', 'gfDance' )
-	
-	funkyGF[ 'Idle' ] = anim8.newAnimation( animFrames, 0.05 )
-	funkyGF.curAnim = 'Idle'
-	funkyGF.frameWidth, funkyGF.frameHeight = animFrames.fW, animFrames.fH
-	
-	table.insert( animatedSprites, funkyGF )
+	intro.active = true
+	Event.hook( Conductor, { 'beatHit' } )
 end
 
-function intro:update(dt)
-	--[[ -------------------------------------- ]] --
+function intro:update( dt )
 	
-	-- update library shit
-	Timer.update(dt)
+	if not intro.active then return end
 	
-	-- update other animated stuff also
-	introText:update(dt)
-	pressStartTxt:update(dt)
+	--[[---------------------------------------------------]]--
 	
-	-- seems like pain, but it's necessary
-	for index, anim in ipairs( animatedSprites ) do
-		animatedSprites[ index ][ anim.curAnim ]:update( dt )
-	end
+	-- make sure both the instrumental and voice track are synced
+	assets.songs[ 'endless_voices' ]:seek( assets.songs[ 'endless_inst' ]:tell( ) )
 	
-	--[[ -------------------------------------- ]] --
+	-- update the conductor
+	Conductor.songPos = ( assets.songs[ 'endless_inst' ]:tell( ) * 1000 )
+	Conductor:update( dt )
 	
-	-- first, keep instrumental and voice track synced with each other
-	-- based on the instrumental
-	assets.songs[ curSong .. '_voices' ]:seek( assets.songs[ curSong .. '_inst' ]:tell( ) )
+	--[[---------------------------------------------------]]--
 	
-	-- then update conductor based on the instrumental as well
-	Conductor.songPos = ( assets.songs[ curSong .. '_inst' ]:tell( ) + ( Conductor.offset / 1000 ) ) * 1000
-	Conductor:update(dt)
+	Timer.update( dt )
+	flux.update( dt )
 	
-	--[[ -------------------------------------- ]] --
+	introTxt:update( dt )
+	startTxt:update( dt )
 	
-	-- prepares canvases that will be used in a bit
-	if not HURRYTHEFUCKUP then
-		introShit:renderTo(
-			function()
-				-- damn right i'm doing that, fuck performance
+	--[[---------------------------------------------------]]--
+	
+	-- canvas sorting
+	if not pressedStart then
+	
+		introCanvas:renderTo(
+		
+			function( )
+			
+				--[[---------------------------------------------------]]--
+				
 				love.graphics.clear( )
 				
 				love.graphics.push( )
 				
 				love.graphics.scale( 0.1 )
 				
-				-- yep, take into account the scale when centering shit
-				introText:draw( ( curr_width / 2 / 0.1 ) - introText.get.width / 2, ( curr_height / 2 / 0.1 ) - introText.get.height / 2 )
+				introTxt:draw( ( curr_width / 2 / 0.1 ) - introTxt.get.width / 2, introTxt.y )
 				
 				love.graphics.pop( )
 				
-				if logoData[1] == 1 then
-					local truex, _, offx, _ = getTrueCenterForDrawable( assets.images['logo']:getWidth( ), assets.images['logo']:getHeight( ) )
+				--[[---------------------------------------------------]]--
+				
+				if loveData[ 1 ] == 1 then
+				
+					love.graphics.push( )
+					
+					love.graphics.scale( stressedData.Emoji.scale )
+					
+					local emoWidth, emoHeight = stressedData.Emoji.image:getDimensions( )
+					
+					love.graphics.draw( stressedData.Emoji.image, curr_width / 2 / stressedData.Emoji.scale - emoWidth / 2, curr_height / 2 / stressedData.Emoji.scale - emoHeight / 2 )
+					
+					love.graphics.pop( )
+					
+					--[[--------------------------------]]--
 					
 					love.graphics.push( )
 					
-					love.graphics.setColor( logoData[2] )
-					love.graphics.draw( assets.images['logo'], truex, 0, 0, 0.5, 0.5, offx )
+					love.graphics.scale( stressedData.Hands.scale )
+					
+					local handWidth, handHeight = stressedData.Hands.image:getDimensions( )
+					
+					-- for tweening it away
+					love.graphics.setColor( 1, 1, 1, stressedData.Hands.alpha )
+					
+					love.graphics.draw( stressedData.Hands.image, curr_width / 2 / stressedData.Hands.scale - handWidth / 2, curr_height / 2 / stressedData.Hands.scale - handHeight / 2 )
+					
+					love.graphics.setColor( 1, 1, 1, 1 )
 					
 					love.graphics.pop( )
+					
+					--[[--------------------------------]]--
+					
+					love.graphics.push( )
+					
+					love.graphics.scale( 0.1 )
+				
+					local width, height = loveData[ 2 ]:getDimensions( )
+					
+					love.graphics.setColor( 1, 1, 1, loveData.alpha )
+					
+					love.graphics.draw( loveData[ 2 ], curr_width / 2 / 0.1 - width / 2, curr_height / 2 / 0.1 - height / 2 )
+					
+					love.graphics.setColor( 1, 1, 1, 1 )
+					
+					love.graphics.pop( )
+					
 				end
 			end
+			
 		)
+		
 	else
-		pressStart:renderTo(
+	
+		pressStartCanvas:renderTo(
+		
 			function( )
+			
+				--[[---------------------------------------------------]]--
+				
 				love.graphics.clear( )
 				
 				love.graphics.push( )
 				
-				-- fail safe in case player skipped the intro
-				love.graphics.setColor( {1, 1, 1, 1} )
+				love.graphics.scale( logoData.scale )
 				
-				-- this will also be animated so keep it like that
-				love.graphics.scale( logoData.size )
-				
-				-- make sure to only call getTrueCenterForDrawable AFTER setting scale so
-				-- it takes the current scale into account when calculating
-				local truex, _, offx, _ = getTrueCenterForDrawable( assets.images['logo']:getWidth( ), assets.images['logo']:getHeight( ) )
-				
-				love.graphics.draw( assets.images[ 'logo' ], truex, 0, 0, logoData.size, logoData.size, offx )
+				love.graphics.draw( assets.images[ 'logo' ], ( curr_width / 2 / logoData.scale ) - assets.images[ 'logo' ]:getWidth( ) / 2, 100 / logoData.scale - assets.images[ 'logo' ]:getHeight( ) / 2 )
 				
 				love.graphics.pop( )
 				
-				--[[ -------------------------------------- ]]
+				--[[---------------------------------------------------]]--
 				
 				love.graphics.push( )
 				
 				love.graphics.scale( 0.1 )
 				
-				pressStartTxt:draw( ( curr_width / 2 / 0.1 ) - pressStartTxt.get.width / 2, ( curr_height / 0.1 ) - pressStartTxt.get.height * 1.5 )
+				startTxt:draw( ( curr_width / 2 / 0.1 ) - startTxt.get.width / 2, ( curr_height / 0.1 ) - startTxt.get.height * 1.5 )
 				
 				love.graphics.pop( )
+			
+			end
+			
+		)
+	
+	end
+	
+	--[[---------------------------------------------------]]--
+end
+
+function intro:leave( next, ... )
+	intro.active = false
+end
+
+function intro:draw( )
+	if not intro.active then return end
+	
+	if not pressedStart then
+		love.graphics.draw( introCanvas )
+	else
+		love.graphics.draw( pressStartCanvas )
+	end
+	
+end
+
+--[[-------------------------------------------------------------]]--
+
+function intro:keypressed( key, scancode, isrepeat )
+	
+	if not intro.active then return end
+	
+	if ( key == 'return' or key == 'space' or key == 'kpenter' ) and not pressedStart then
+		
+		pressedStart = true
+		
+	elseif ( key == 'return' or key == 'space' or key == 'kpenter' ) and pressedStart and not setForTransition then
+		
+		setForTransition = true
+		startTxt:send( '[skip][bounce][color=#ebc034][blink=15]< Press Space or Enter to Start >[/blink][/color][/bounce]' )
+		assets.sounds[ 'confirmMenu' ]:play( )
+		
+		Timer.after( 1,
+			function( )
+			
+				roomy:enter( screens[ 'menu' ] )
 				
-				--[[ -------------------------------------- ]]
-				
-				love.graphics.push( )
-				
-				love.graphics.scale( 0.3 )
-				
-				-- remember there's a drawable in this variable, not a string
-				funkyGF[ funkyGF.curAnim ]:draw( assets.images[ 'gfDanceTitle' ], curr_width / 2 / 0.3 - funkyGF.frameWidth / 2, curr_height / 2 / 0.3 - funkyGF.frameHeight / 2 )
-				
-				love.graphics.pop( )
 			end
 		)
-	end
-end
-
-function intro:leave(next, ...)
-end
-
---[[
-local sickBeatz = 0
-function Conductor:beatHit( )
-	sickBeatz = sickBeatz + 1
 	
-	-- half tempo, so 120 is treated like 60 here
-	if sickBeatz % 2 == 0 then
-		--assets.sounds['hitsound']:play( )
+	end
+	
+end
+
+--[[-------------------------------------------------------------]]--
+
+-- hook Conductor.beatHit
+
+beatHandler = Event.on( 'beatHit',
+	function( )
+		if not intro.active then return end
 		
-		if not HURRYTHEFUCKUP then
-			if sickBeatz == 2 then
-				introText:send( '[shake=1.5][bounce=0.5][scale=1]' .. cringyIntros[ love.math.random( #cringyIntros ) ] .. '[/scale][/bounce][/shake]', 150 * 10000 )
-			elseif sickBeatz == 6 then
-				introText:continue( )
-			elseif sickBeatz == 8 then
-				introText:send ( ' ' )
-			elseif sickBeatz == 10 then
-				introText:send( '[shake=1.5][bounce=0.5][scale=1]' .. 'new fnf update when?[newline][waitforinput]when it comes out' .. '[/scale][/bounce][/shake]', 150 * 10000 )
-			elseif sickBeatz == 14 then
-				introText:continue( )
-			elseif sickBeatz == 16 then
-				introText:send ( ' ' )
-				logoData[1] = 1
-				logoData[3] = Timer.tween( 3, logoData, { 1, {1, 1, 1, 1} }, 'in-out-sine',
-					function( )
-						-- let this canvas die, go to the next one
-						HURRYTHEFUCKUP = true
-					end
-				)
-			end
-		else
-			if logoData[3] ~= nil then
-				-- if still running, stop first
-				Timer.cancel(logoData[3])
+		beatz = beatz + 1
+
+		-- half tempo
+		if beatz % 2 == 0 then
+		
+			if not pressedStart then
 				
-				-- tween logo expanding
-				logoData[3] = Timer.tween( 1, logoData, { size = 1 }, 'in-out-sine',
-					alert( ' done ' )
-				)
+				if beatz == 2 then
+				
+					introTxt:send( '[shake=1.5][bounce=0.5][scale=1]' .. cringyIntros[ love.math.random( #cringyIntros ) ] .. '[/scale][/bounce][/shake]', 150 * 10000 )
+					
+				elseif beatz == 6 then
+				
+					introTxt:continue( )
+					
+				elseif beatz == 8 then
+				
+					introTxt:send( ' ' )
+					
+				elseif beatz == 10 then
+					
+					introTxt.y = introTxt.y - 1500
+					loveData[ 1 ] = 1
+					
+					introTxt:send( '[shake=1.5][bounce=0.5][scale=1]' .. 'made with löve[newline][newline][newline][newline][newline][newline][newline][newline][newline][newline][newline][newline][newline][newline][waitforinput][color=#FF3030]and my suffering[/color]' .. '[/scale][/bounce][/shake]', 150 * 10000 )
+					
+				elseif beatz == 14 then
+				
+					introTxt:continue( )
+					stressedData[ 1 ] = true
+					Timer.tween( 0.5, loveData, { alpha = 0 }, 'in-out-quad' )
+					Timer.tween( 1, stressedData.Emoji, { scale = 0.5 }, 'in-out-quad' )
+					
+					Timer.tween( 0.8, stressedData.Hands, { alpha = 1, scale = 0.9 }, 'in-out-quad' )
+					
+				elseif beatz == 16 then
+					
+					introTxt.y = introTxt.y + 1500
+					loveData[ 1 ] = 0
+					introTxt:send( ' ' )
+				
+				elseif beatz == 18 then
+					introTxt:send( '[shake=1.5][bounce=0.5][scale=1]' .. cringyIntros[ love.math.random( #cringyIntros ) ] .. '[/scale][/bounce][/shake]', 150 * 10000 )
+				
+				elseif beatz == 22 then
+				
+					introTxt:continue( )
+				
+				elseif beatz == 24 then
+				
+					introTxt:send( ' ' )
+				
+				elseif beatz == 26 then
+					
+					introTxt:send( '[shake=1.5][bounce=0.5][scale=1]' .. 'new fnf update when?[newline][waitforinput]when it comes out' .. '[/scale][/bounce][/shake]', 150 * 10000 )
+				
+				elseif beatz == 30 then
+					
+					introTxt:continue( )
+				
+				elseif beatz == 32 then
+				
+					introTxt:send( ' ' )
+				
+				elseif beatz == 34 then
+				
+					pressedStart = true
+					
+				end
+			else
+				
+				flux.to( logoData, 0.05, { scale = 0.7 } ):ease( 'cubicinout' ):after( logoData, 0.05, { scale = 0.5 } ):ease( 'cubicinout' )
+				
 			end
+			
 		end
+		
 	end
-end
---]]
-
-function intro:keypressed(key)
-    if key == 'kp+' then
-		conductor.offset = conductor.offset + 1
-	elseif key == 'kp-' then
-		conductor.offset = conductor.offset - 1
-	elseif key == 'space' or key == 'return' then
-		if not HURRYTHEFUCKUP then HURRYTHEFUCKUP = true
-		elseif HURRYTHEFUCKUP and not pressedStart then
-			pressedStart = true
-			pressStartTxt:send( '[skip][bounce][color=#ebc034][blink=15]< Press Space or Enter to Start >[/blink][/color][/bounce]' )
-			assets.sounds[ 'confirmMenu' ]:play( )
-		end
-	end
-end
-
-function intro:draw()
-	--love.graphics.print( 'Loaded ' .. assets.filecount .. ' assets in total.', 0, 0)
-	--love.graphics.print( assets.images.filecount  .. ' images.', 0, 0 + 10 * 2)
-	--love.graphics.print( assets.sounds.filecount  .. ' sounds.', 0, 0 + 10 * 4)
-	--love.graphics.print( assets.songs.filecount  .. ' songs.', 0, 0 + 10 * 6)
-	--love.graphics.print( assets.fonts.filecount  .. ' fonts.', 0, 0 + 10 * 8)
-	
-	--love.graphics.print( 'Actual pos: ' .. assets.songs['roses']:tell( 'seconds' ), 0, 0 + 10 * 10, 0, 0.1, 0.1 )
-	--love.graphics.print( 'Fed pos: ' .. Conductor.songPos, 0, 0 + 10 * 12, 0, 0.1, 0.1 )
-	--love.graphics.print( 'Beats: ' .. sickBeatz, 0, 0 + 10 * 14, 0, 0.1, 0.1 )
-	--love.graphics.print( 'Offset: ' .. Conductor.offset, 0, 0 + 10 * 16, 0, 0.1, 0.1 )
-	--love.graphics.print( 'BPM: ' .. Conductor.bpm, 0, 0 + 10 * 18, 0, 0.1, 0.1 )
-	--love.graphics.print( 'FPS: ' .. love.timer.getFPS( ), 0, 0 + 10 * 20, 0, 0.1, 0.1 )
-	
-	if not HURRYTHEFUCKUP then
-		love.graphics.draw( introShit )
-	else
-		love.graphics.draw( pressStart )
-	end
-end
+)
 
 return intro

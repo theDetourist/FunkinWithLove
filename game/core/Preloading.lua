@@ -1,6 +1,3 @@
--- thank lord from the heavens for this library... and Neer too
-clove = require( 'libs.clove' )
-
 local assets = { }
 assets.filecount = 0
 
@@ -137,7 +134,7 @@ local charts_path = 'data/charts/'
 
 clove.importAll( charts_path, true, assets.charts, nil,
 	function (filename)
-		if getExtension( filename ) == 'json' then
+		if getExtension( filename ) == 'json' or getExtension( filename ) == 'ini' then
 			return false
 		else return true end
 	end

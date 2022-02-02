@@ -1,9 +1,5 @@
-local anim8 = require( 'libs.anim8' )
-
 Note = { }
 Notes = { __index = Note }
-
-Note.assets = { }
 
 -- time in milliseconds where the note has to hit
 -- the middle of the strumline
@@ -70,7 +66,7 @@ function createNote( time, lane, musthit, sustaintime, prevNote )
 	-- ...rightfully so, obviously
 	local animFrames = { }
 	
-	if Note.assets ~= nil then
+	if assets ~= nil then
 		local direction = 'purple'  -- left arrow as default
 		
 		if lane == 1 or lane == 5 then
@@ -86,7 +82,7 @@ function createNote( time, lane, musthit, sustaintime, prevNote )
 		end
 
 		if sustaintime > 0 then
-			animFrames = Note.assets.getFramesFromXML( 'NOTE_assets', direction .. ' hold piece' )
+			animFrames = assets.getFramesFromXML( 'NOTE_assets', direction .. ' hold piece' )
 			
 			Note.Sustain.Animation = anim8.newAnimation( animFrames, 1 )
 			
@@ -96,7 +92,7 @@ function createNote( time, lane, musthit, sustaintime, prevNote )
 			Note.Sustain.height = animFrames.H
 			Note.Sustain.AnimationName = direction .. ' hold piece'
 			
-			animFrames = Note.assets.getFramesFromXML( 'NOTE_assets', direction .. ' hold end' )
+			animFrames = assets.getFramesFromXML( 'NOTE_assets', direction .. ' hold end' )
 			
 			Note.Sustain.EndAnimation = anim8.newAnimation( animFrames, 1 )
 			Note.Sustain.EndAnimation:flipV( )
@@ -104,7 +100,7 @@ function createNote( time, lane, musthit, sustaintime, prevNote )
 			Note.Sustain.EndAnimationName = direction .. ' hold end'
 		end
 		
-		animFrames = Note.assets.getFramesFromXML( 'NOTE_assets', direction )
+		animFrames = assets.getFramesFromXML( 'NOTE_assets', direction )
 		
 		Note.width, Note.frameWidth, Note.height, Note.frameHeight = animFrames.W, animFrames.fW, animFrames.H, animFrames.fH
 		Note.Animation = anim8.newAnimation( animFrames, 1 )
