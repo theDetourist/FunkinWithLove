@@ -245,6 +245,7 @@ function clove.load(assetType,path,recurse,tbl,rename,except,param)
 					-- so to go around this, had to rename the key to have an ".xml" or ".ini"
 					-- in the name for easier use later, sorry y'all, too tired for this shit
 					
+					-- or better yet, add the file extension everytime, genius
 					if getExtension(dir[i]) == 'xml' then
 						assetTbl[libName .. '.xml']=clove.loadAsset(path..delim..dir[i],param(dir[i]))
 					elseif getExtension(dir[i]) == 'ini' then

@@ -7,11 +7,7 @@
 -- under the terms of the MIT license. See LICENSE for details.
 --
 
--- changes --
-
--- added a way to check if tween is running
--- applied PR https://github.com/rxi/flux/pull/5 for convenience, rgrams's tweak as well
--- applied PR https://github.com/rxi/flux/pull/10 for the options, the more the merier
+-- added pr https://github.com/rxi/flux/pull/10
 
 local flux = { _version = "0.1.5" }
 flux.__index = flux
@@ -65,7 +61,7 @@ local function makefsetter(field)
       error("expected function or callable", 2)
     end
     local old = self[field]
-    self[field] = old and function(...) old(...) x(...) end or x
+    self[field] = old and function() old() x() end or x
     return self
   end
 end
@@ -98,6 +94,7 @@ tween.oncomplete  = makefsetter("_oncomplete")
 tween.onrewindcomplete  = makefsetter("_onrewindcomplete")
 tween.oncyclecomplete  = makefsetter("_oncyclecomplete")
 
+
 function tween.new(obj, time, vars)
   local self = setmetatable({}, tween)
   self.obj = obj
@@ -107,7 +104,6 @@ function tween.new(obj, time, vars)
   self._ease = "quadout"
   self.vars = {}
   self.way = 1
-  
   for k, v in pairs(vars) do
     if type(v) ~= "number" then
       error("bad value for key '" .. k .. "'; expected number")
@@ -116,6 +112,7 @@ function tween.new(obj, time, vars)
   end
   return self
 end
+
 
 function tween:init()
   for k, v in pairs(self.vars) do
@@ -141,18 +138,12 @@ function tween:after(...)
   return t
 end
 
+
 function tween:stop()
   flux.remove(self.parent, self)
 end
 
--- yep, hopefully it's that simple, ty Krunklehorn (https://github.com/Krunklehorn)
-function tween:isActive()
-	if self[obj][tween] == true then
-		return true
-	else
-		return false
-	end
-end
+
 
 function flux.group()
   return setmetatable({}, flux)
@@ -187,24 +178,20 @@ function flux:update(deltatime)
       if t._onupdate then t._onupdate() end
       if p >= 1 then
         if t._rewind and (t._rewind == true or t._rewind > 1) then
-			t.progress = 0
-			t._rewind = (t._rewind == true) or (t._rewind - 1)
-			t.way = t.way * -1
-			
-			for k, v in pairs(t.vars) do
-				t.vars[k].start = t.obj[k]
-			end
-			
-			if t._onrewindcomplete then t._onrewindcomplete() end
-			elseif t._cycle and (t._cycle == true or t._cycle > 1) then
-			
-			t.progress = 0
-			t._cycle = (t._cycle == true) or (t._cycle - 1)
-			
-			if t._oncyclecomplete then t._oncyclecomplete() end
+          t.progress = 0
+          t._rewind = (t._rewind == true) or (t._rewind - 1)
+          t.way = t.way * -1
+          for k, v in pairs(t.vars) do
+            t.vars[k].start = t.obj[k]
+          end
+          if t._onrewindcomplete then t._onrewindcomplete() end
+        elseif t._cycle and (t._cycle == true or t._cycle > 1) then
+          t.progress = 0
+          t._cycle = (t._cycle == true) or (t._cycle - 1)
+          if t._oncyclecomplete then t._oncyclecomplete() end
         else
-			flux.remove(self, i)
-			if t._oncomplete then t._oncomplete() end
+          flux.remove(self, i)
+          if t._oncomplete then t._oncomplete() end
         end
       end
     end

@@ -1,6 +1,3 @@
--- thank lord from the heavens for this library... and Neer too
-clove = require( 'libs.clove' )
-
 local assets = { }
 assets.filecount = 0
 
@@ -73,7 +70,7 @@ assets.sounds.filecount = tablelength(assets.sounds)
 local sng_path = 'data/songs/'
 
 clove.importAll(sng_path, true, assets.songs)
-assets.songs.filecount = tablelength(assets.songs)  - 1
+assets.songs.filecount = tablelength(assets.songs) - 1
 
 -- _____________________________________   -  -  -  -  -   ————————————————————————————————————— --
 
@@ -90,7 +87,7 @@ clove.importAll(fnt_path, true, assets.fonts, nil, nil,
 		return size
 	end
 )
-assets.fonts.filecount = tablelength(assets.fonts)  - 1
+assets.fonts.filecount = tablelength(assets.fonts) - 1
 
 -- _____________________________________   -  -  -  -  -   ————————————————————————————————————— --
 
@@ -137,7 +134,7 @@ local charts_path = 'data/charts/'
 
 clove.importAll( charts_path, true, assets.charts, nil,
 	function (filename)
-		if getExtension( filename ) == 'json' then
+		if getExtension( filename ) == 'json' or getExtension( filename ) == 'ini' then
 			return false
 		else return true end
 	end

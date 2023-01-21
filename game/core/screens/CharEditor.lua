@@ -1,13 +1,7 @@
-local roomy = require( 'libs.roomy' )
-local flux = require( 'libs.flux' )
-local inifile = require( 'libs.inifile' )
-local loveframes = require( 'libs.loveframes.init' )
-local anim8 = require( 'libs.anim8' )
-local FrameUtils = require( 'core.FrameUtils' )
-
 -- not to be confused with a chart editor
 -- this one just aids on making animated characters
 local chareditor = { }
+chareditor.active = false
 
 local assets = { }
 
@@ -334,9 +328,13 @@ function chareditor:enter(previous, ... )
 			end
 		end
 	end
+	
+	chareditor.active = true
 end
 
 function chareditor:update( dt )
+	if not chareditor.active then return end
+	
 	loveframes.update( dt )
 	
 	if Editor.Animations[ Editor.currentlySelected ] ~= nil then
@@ -345,9 +343,12 @@ function chareditor:update( dt )
 end
 
 function chareditor:leave(next, ...)
+	chareditor.active = false
 end
 
 function chareditor:draw()
+	if not chareditor.active then return end
+	
 	--[[ -------------------------------------- ]] --
 	
 	-- cool background
@@ -401,47 +402,45 @@ function chareditor:draw()
 	--[[ -------------------------------------- ]] --
 end
 
-function love.mousepressed(x, y, button)
-	loveframes.mousepressed(x, y, button)
+function chareditor:mousepressed( x, y, button )
+	if not chareditor.active then return end
+	
+	loveframes.mousepressed( x, y, button )
 end
 
-function love.mousereleased(x, y, button)
-	loveframes.mousereleased(x, y, button)
+function chareditor:mousereleased( x, y, button )
+	if not chareditor.active then return end
+	
+	loveframes.mousereleased( x, y, button )
 end
 
-function love.wheelmoved(x, y)
-	loveframes.wheelmoved(x, y)
+function chareditor:wheelmoved( x, y )
+	if not chareditor.active then return end
+	
+	loveframes.wheelmoved( x, y )
 end
 
-function chareditor:keypressed(key, scancode, isrepeat)
+function chareditor:keypressed( key, scancode, isrepeat )
+	if not chareditor.active then return end
 
 	-- ain't that convenient
 	if key == 'r' then
 		love.event.quit( 'restart' )
 	end
 	
-    loveframes.keypressed(key, isrepeat)
+    loveframes.keypressed( key, isrepeat )
 end
 
-function love.keyreleased(key)
-	loveframes.keyreleased(key)
+function chareditor:keyreleased( key )
+	if not chareditor.active then return end
+	
+	loveframes.keyreleased( key )
 end
 
-function love.textinput(text)
-	loveframes.textinput(text)
-end
-
-function table.contains(table, element)
-  for _, value in pairs(table) do
-    if value == element then
-      return true
-    end
-  end
-  return false
-end
-
-function clamp( val, minnum, maxnum )
-	return math.min( math.max( val, minnum), maxnum )
+function chareditor:textinput( text )
+	if not chareditor.active then return end
+	
+	loveframes.textinput( text )
 end
 
 return chareditor

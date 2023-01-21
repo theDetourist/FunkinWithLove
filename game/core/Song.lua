@@ -1,8 +1,6 @@
-local json = require( 'libs.json' )
 require( 'core.Note' )
 
 Song = { }
-Song.Conductor = require('core.Conductor')
 
 --[[ ------------------------------------------------------------------------------------- ]] --
 
@@ -198,7 +196,7 @@ function validateThisShit( trash )
 					math.abs( note[ 1 ] ),
 					trunote,
 					( trunote >= 5 and true or false ),		-- must hit now describes wether note is player's or not
-					note[ 3 ] / Song.Conductor.stepCrochet,
+					note[ 3 ] / Conductor.stepCrochet,
 					( index > 1 and Song.Notes[ index - 1 ] or Song.Notes[ index ] )
 				)
 			)
