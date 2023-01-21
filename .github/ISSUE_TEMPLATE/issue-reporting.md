@@ -1,13 +1,12 @@
 ---
-name: Bug report
-about: Format recommended for issue
+name: Issue reporting
+about: Recommended format for reporting issues
 title: ''
-labels: ''
+labels: bug
 assignees: ''
 
 ---
 
-# Issue
 > ### Version of the engine ( also, if build is -release or -nightly )
 changeme
 > ### Operational system
