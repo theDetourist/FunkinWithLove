@@ -1,3 +1,7 @@
+local utf8 = require( "utf8" )
+
+local inifile = require( 'libs.inifile' )
+
 -- make missing directories
 dirs = {
 	"metadata"
@@ -5,6 +9,11 @@ dirs = {
 
 for i, idx in ipairs(dirs) do
 	love.filesystem.createDirectory( dirs[i] )
+end
+
+function lastIndexOf( str, char )
+	for i=str:len(),1,-1 do if str:sub(i,i)==char then return i end end
+	return str:len()+1
 end
 
 if inifile == nil then
@@ -18,16 +27,16 @@ elseif love.filesystem.getInfo( 'userconf.ini' ) == nil or inifile.parse( 'userc
 	-- player name so they feel good about themselves
 	usershit.Personal.name = 'Detoria'
 	usershit.Personal.favDifficulty = 'hard'
-	usershit.Personal.favBoyfriend = 'none'
-	usershit.Personal.favGirlfriend = 'none'
+	usershit.Personal.favBoyfriend = 'bf_default'
+	usershit.Personal.favGirlfriend = 'gf_default'
 	
-	usershit.Game.globalOffset = 0
-	usershit.Game.scrollSpeed = 2
-	usershit.Game.downScroll = true
+	usershit.Game.globalOffset = 60
+	usershit.Game.scrollSpeed = 1
+	usershit.Game.downScroll = false
 	
 	usershit.Keys.leftArrow = 'left'
-	usershit.Keys.downArrow = 'down'
 	usershit.Keys.upArrow = 'up'
+	usershit.Keys.downArrow = 'down'
 	usershit.Keys.rightArrow = 'right'
 	
 	inifile.save( 'userconf.ini', usershit )
@@ -36,3 +45,5 @@ elseif love.filesystem.getInfo( 'userconf.ini' ) == nil or inifile.parse( 'userc
 	test = nil
 	usershit = nil
 end
+
+-- define useful functions and callbacks for later use

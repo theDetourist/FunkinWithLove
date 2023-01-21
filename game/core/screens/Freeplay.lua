@@ -95,7 +95,7 @@ function freeplay:draw( )
 	love.graphics.draw(
 		assets.images[ 'menuDesat' ],
 		curr_width / 2,
-		-- liked the parallax thingy going on here?
+		-- like the parallax thingy going on here?
 		clamp( curr_height / 2 - ( camy / 16 ), 0, assets.images[ 'menuDesat' ]:getHeight( ) ),
 		0,
 		1,
@@ -222,16 +222,20 @@ function freeplay:keypressed( key, scancode, isrepeat )
 	if not freeplay.active or freeplay.setForTransition then return end
 	
 	if key == 'up' or key == 'down' then
-		freeplay.curSelected = clamp( freeplay.curSelected + ( key == 'up' and -1 or 1 ), 1, table.getn( freeplay.songs.list ) )
-		print( freeplay.curSelected )
+			
+		if table.getn( freeplay.songs.list ) > 0 then
+			freeplay.curSelected = clamp( freeplay.curSelected + ( key == 'up' and -1 or 1 ), 1, table.getn( freeplay.songs.list ) )
 		
-		freeplay.cam.focus.y = freeplay.songs.list[ freeplay.curSelected ].y * .15
-		
-		local sfx = assets.sounds[ 'scrollMenu' ]:clone( )
-		sfx:play( )
-		
-		-- so we can delete these from memory once they're done
-		table.insert( sound_fxs, sfx )
+			print( freeplay.curSelected )
+			
+			freeplay.cam.focus.y = freeplay.songs.list[ freeplay.curSelected ].y * .15
+			
+			local sfx = assets.sounds[ 'scrollMenu' ]:clone( )
+			sfx:play( )
+			
+			-- so we can delete these from memory once they're done
+			table.insert( sound_fxs, sfx )
+		end
 	elseif key == 'return' or key == 'kpenter' then
 		if table.getn( freeplay.songs.list ) > 0 then
 			local filepath, chart, diff = freeplay.songs[ freeplay.curSelected ]:getFilename( ), '', ''

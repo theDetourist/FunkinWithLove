@@ -1,7 +1,7 @@
 # Funkin' With Löve2D
-Current version: 0.0.3 ( 01 / 16 / 22 )
+Current version: 0.0.3b ( 21 / 01 / 23 )
 
-![Functional gameplay with early sustains as of 0.0.3](https://user-images.githubusercontent.com/44783518/149680749-451e3b54-1523-4dce-9085-ba1daa359ab9.gif)
+![Functional gameplay with early sustains as of 0.0.3a](https://user-images.githubusercontent.com/44783518/149680749-451e3b54-1523-4dce-9085-ba1daa359ab9.gif)
 
 Barebones of what could be a recreation of Friday Night Funkin' in Löve2D. Is there a reason for this to exist? You tell me, I'm just here to make this functional.
 
@@ -25,6 +25,7 @@ All under MIT Licensing, or very similar. More information, go check the Github 
 — [Timer and Camera modules from hump by vrld](https://github.com/vrld/hump) -- Yes, this one's also MIT  
 — [SYSL Text by SystemLogoff](https://github.com/SystemLogoff/SYSL-Text)  
 — [deep by Nikaoto](https://github.com/Nikaoto/deep)
+— [Events module from knife by airstruck](https://github.com/airstruck/knife)
 
 # Keeping Track
 

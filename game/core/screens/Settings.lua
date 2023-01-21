@@ -51,6 +51,9 @@ function settings:enter( previous, ... )
 	nameInput:CenterX( )
 	nameInput:SetY( 30 )
 	nameInput:SetText( settings.usershit[ 'Personal' ][ 'name' ] )
+	nameInput.OnEnter = function( object, text )
+		settings.usershit[ 'Personal' ][ 'name' ] = text or settings.usershit[ 'Personal' ][ 'name' ]
+	end
 	
 	local overrideBF = loveframes.Create( 'multichoice', personalPanel )
     overrideBF:SetPos( 5, personalPanel:GetHeight( ) - overrideBF:GetHeight( ) - 5 )
@@ -63,6 +66,9 @@ function settings:enter( previous, ... )
 	overrideBF:AddChoice( 'bf_pixelized' )
 	
 	overrideBF:SetChoice( ( settings.usershit[ 'Personal' ][ 'favBoyfriend' ] == 'none' and 'None' or settings.usershit[ 'Personal' ][ 'favBoyfriend' ] ) )
+	overrideBF.OnChoiceSelected = function( object, choice )
+		settings.usershit[ 'Personal' ][ 'favBoyfriend' ] = choice or 'none'
+	end
 	
 	local overrideBFTxt = loveframes.Create( 'text', personalPanel )
 	
@@ -89,6 +95,9 @@ function settings:enter( previous, ... )
 	overrideGF:AddChoice( 'gf_pixelized' )
 	
 	overrideGF:SetChoice( ( settings.usershit[ 'Personal' ][ 'favGirlfriend' ] == 'none' and 'None' or settings.usershit[ 'Personal' ][ 'favGirlfriend' ] ) )
+	overrideGF.OnChoiceSelected = function( object, choice )
+		settings.usershit[ 'Personal' ][ 'favGirlfriend' ] = choice or 'none'
+	end
 	
 	local overrideGFTxt = loveframes.Create( 'text', personalPanel )
 	
@@ -115,6 +124,10 @@ function settings:enter( previous, ... )
     globalOffset:SetX( 5 )
     globalOffset:SetSize( 70, 25 )
 	globalOffset:SetValue( settings.usershit[ 'Game' ][ 'globalOffset' ] )
+	globalOffset:SetMinMax( -1000, 1000 )
+	globalOffset.OnValueChanged = function( object, value )
+		settings.usershit[ 'Game' ][ 'globalOffset' ] = value or 0
+	end
 	
 	local offsetTxt = loveframes.Create( 'text', gamePanel )
 	
@@ -140,6 +153,9 @@ function settings:enter( previous, ... )
 	scrollSpeed:SetMinMax( 1, 10 )
 	scrollSpeed:SetDecimals( 2 )
 	scrollSpeed:SetValue( settings.usershit[ 'Game' ][ 'scrollSpeed' ] )
+	scrollSpeed.OnValueChanged = function( object, value )
+		settings.usershit[ 'Game' ][ 'scrollSpeed' ] = value or 0
+	end
 	
 	local downscrollTxt = loveframes.Create( 'text', gamePanel )
 	
@@ -475,6 +491,8 @@ function settings:mousepressed( x, y, button )
 		
 		-- make sure animations play from the first frame so they don't look weird
 		downscrollCheckmark[ downscrollCheckmark.curAnim ]:gotoFrame( 1 )
+		
+		settings.usershit[ 'Game' ][ 'downScroll' ] = downscrollCheckmark.active 
 	end
 	
 	-- replace key for arrow click test
@@ -584,7 +602,27 @@ function settings:keypressed( key, scancode, isrepeat )
 		
 		Timer.after( 1,
 			function( )
-				inifile.save( 'userconf.ini', settings.usershit )
+				-- had to redo what preparing or else the shit can't save properly
+				local usershit = { }
+				usershit.Personal = { }
+				usershit.Game = { }
+				usershit.Keys = { }
+				
+				usershit.Personal.name = settings.usershit[ 'Personal' ][ 'name' ]
+				usershit.Personal.favDifficulty = settings.usershit[ 'Personal' ][ 'favDifficulty' ]
+				usershit.Personal.favBoyfriend = settings.usershit[ 'Personal' ][ 'favBoyfriend' ]
+				usershit.Personal.favGirlfriend = settings.usershit[ 'Personal' ][ 'favGirlfriend' ]
+				
+				usershit.Game.globalOffset = settings.usershit[ 'Game' ][ 'globalOffset' ]
+				usershit.Game.scrollSpeed = settings.usershit[ 'Game' ][ 'scrollSpeed' ]
+				usershit.Game.downScroll = settings.usershit[ 'Game' ][ 'downScroll' ]
+				
+				usershit.Keys.leftArrow = settings.usershit[ 'Keys' ][ 'leftArrow' ]
+				usershit.Keys.upArrow = settings.usershit[ 'Keys' ][ 'upArrow' ]
+				usershit.Keys.downArrow = settings.usershit[ 'Keys' ][ 'downArrow' ]
+				usershit.Keys.rightArrow = settings.usershit[ 'Keys' ][ 'rightArrow' ]
+				
+				inifile.save( 'userconf.ini', usershit )
 				
 				-- recreate it, because it's easier
 				screens[ 'menu' ] = { }
@@ -607,7 +645,8 @@ function settings:keypressed( key, scancode, isrepeat )
 				if index == 1 then poop = 'left' break
 				elseif index == 2 then poop = 'down' break
 				elseif index == 3 then poop = 'up' break
-				elseif index == 4 then poop = 'right' break end
+				elseif index == 4 then poop = 'right' break
+				else poop = 'left' break end
 			end
 		end
 		

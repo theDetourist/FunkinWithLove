@@ -70,7 +70,7 @@ assets.sounds.filecount = tablelength(assets.sounds)
 local sng_path = 'data/songs/'
 
 clove.importAll(sng_path, true, assets.songs)
-assets.songs.filecount = tablelength(assets.songs)  - 1
+assets.songs.filecount = tablelength(assets.songs) - 1
 
 -- _____________________________________   -  -  -  -  -   ————————————————————————————————————— --
 
@@ -87,7 +87,7 @@ clove.importAll(fnt_path, true, assets.fonts, nil, nil,
 		return size
 	end
 )
-assets.fonts.filecount = tablelength(assets.fonts)  - 1
+assets.fonts.filecount = tablelength(assets.fonts) - 1
 
 -- _____________________________________   -  -  -  -  -   ————————————————————————————————————— --
 
