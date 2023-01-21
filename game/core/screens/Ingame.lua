@@ -4,8 +4,7 @@ require( 'core.Song' ).new( )
 
 local ingame = { }
 
-ingame.curChart = 'stress-hard'
-ingame.curSong = 'stress'
+ingame.curSong = 'endless'
 ingame.Stage = nil					-- will hold the stage assets and logic later
 ingame.ready = false
 ingame.paused = false
@@ -14,13 +13,12 @@ ingame.notesHit = 0
 ingame.cam = Camera( 0, 0 )
 ingame.cam.focus = { }
 ingame.cam.focus.x, ingame.cam.focus.y = curr_width / 2, curr_height / 2
-ingame.cam.focus.zoom = 1
-ingame.keys = { }
-ingame.active = false				-- to make sure that no logic is processed while in different scenes
+ingame.usershit = { }
 
 -- gameplay shit
 ingame.score = 0
 ingame.health = 100
+
 
 -- UI shit
 ingame.UI = { }
@@ -47,15 +45,14 @@ local rightArrow = { }
 
 --[[ -------------------------------------- ]] --
 
--- current beat handler for this scene
-local beatHandler
-local beatz = 0
-
---[[ -------------------------------------- ]] --
-
 function ingame:enter( previous, ... )
-	ingame.curChart = select( 1, ... ) or ingame.curChart
-	ingame.curSong = ingame.curChart:sub( 0, lastIndexOf( ingame.curChart, '-' ) - 1 )
+
+	ingame.usershit = inifile.parse( 'userconf.ini' )
+	
+	-- assets = select( 1, ... )
+	Note.assets = assets
+	
+	ingame.curSong = select( 2, ... ) or ingame.curSong
 	
 	--[[ -------------------------------------- ]] --
 	
@@ -67,9 +64,7 @@ function ingame:enter( previous, ... )
 	
 	Timer.after( 1,
 		function( )
-			assets.songs[ ingame.curSong .. '_inst' ]:seek( 0 )
 			assets.songs[ ingame.curSong .. '_inst' ]:play( )
-			assets.songs[ ingame.curSong .. '_voices' ]:seek( 0 )
 			assets.songs[ ingame.curSong .. '_voices' ]:play( )
 		end
 	)
@@ -118,36 +113,23 @@ function ingame:enter( previous, ... )
 	
 	Conductor.songPos = -5000
 	
-	local song = Song.loadFromJSON( assets.charts[ ingame.curChart ], ingame.curSong )
+	local song = Song.loadFromJSON( assets.charts[ 'endless-hard' ] )
 	
+	-- TODO RQ TOO: make this shit down here mimic generateSong from
+	-- og game, the saving of the notes in Note.lua format is already
+	-- over with... hopefully
 	makeMagic( song )
 	
-	ingame.Stage = require( 'data/stages/' .. Song.Metadata.Stage )
-	
-	print( 'Song name: ' .. Song.Metadata.Name )
+	ingame.Stage = require( 'data/stages/fuckery' )
 	
 	--[[ -------------------------------------- ]] --
-	
-	Event.hook( Conductor, { 'beatHit' } )
-	
-	--[[ -------------------------------------- ]] --
-	
-	local usershit = inifile.parse( 'userconf.ini' )
-	
-	table.insert( ingame.keys, usershit[ 'Keys' ][ 'leftArrow' ] )
-	table.insert( ingame.keys, usershit[ 'Keys' ][ 'downArrow' ] )
-	table.insert( ingame.keys, usershit[ 'Keys' ][ 'upArrow' ] )
-	table.insert( ingame.keys, usershit[ 'Keys' ][ 'rightArrow' ] )
-	
-	ingame.active = true
 end
 
-function ingame:update( dt )
-	if ingame.paused or not ingame.active then return end
+function ingame:update(dt)
+	if ingame.paused then return end
 	
 	-- update libraries
 	Timer.update( dt )
-	flux.update( dt )
 	
 	ingame.Stage.onUpdate( dt )
 	
@@ -155,7 +137,6 @@ function ingame:update( dt )
 	-- in focus
 	local dx, dy = ingame.cam.focus.x - ingame.cam.x, ingame.cam.focus.y - ingame.cam.y
 	ingame.cam:move( dx / 2, dy / 2 )
-	ingame.cam:zoomTo( ingame.cam.focus.zoom )
 	
 	--[[ -------------------------------------- ]] --
 	
@@ -239,12 +220,10 @@ function ingame:update( dt )
 end
 
 function ingame:leave(next, ...)
-	ingame.active = false
 end
 
 function ingame:draw()
-	if not ingame.active then return end
-	if ingame.paused then love.graphics.print("STOP THAT SHIT", curr_width / 2 - 50, curr_height / 2) return end
+	if ingame.paused then love.graphics.print("STOP THAT SHIT", curr_width / 2 - 50, curr_height / 2) end
 	
 	love.graphics.setColor( 1, 0, 0 )
 	
@@ -341,18 +320,16 @@ function ingame:draw()
 						-- only show arrows once they're on screen
 						if Song.Notes[ index ].y > 0 and not Song.Notes[ index ].WasHit then
 							Song.Notes[ index ].Visible = true
-							Song.Notes[ index ].Sustain.Visible = true
+							-- Song.Notes[ index ].Sustain.Visible = true
 						else
 							Song.Notes[ index ].Visible = false
-							Song.Notes[ index ].Sustain.Visible = false
+							-- Song.Notes[ index ].Sustain.Visible = false
 						end
 						
 						if
-							Song.Notes[ index ].y - Song.Notes[ index ].SustainTime - Song.Notes[ index ].height / 4
-							<
-							playerArrows.y / playerArrows.scale
+							Song.Notes[ index ].Visible
 						and
-							Song.Notes[ index ].y > 0
+							Song.Notes[ index ].SustainTime > 0
 						then
 							Song.Notes[ index ].Sustain.Visible = true
 						else
@@ -360,7 +337,6 @@ function ingame:draw()
 						end
 						
 						-- draw rectangle around notes player can hit for debugging purposes
-						
 						--[[
 						if Song.Notes[ index ].MustHit and Song.Notes[ index ].CanBeHit then
 							love.graphics.setColor( 0, 1, 0, 0.3 )
@@ -379,40 +355,36 @@ function ingame:draw()
 							-- WHAT A MESS, which was the bottom, where's the top???
 							-- clean up, CLEAN UPPP
 							
-							local topX, topY, height, HAHA = 0, 0, 0, playerArrows.scale
+							local topX, topY, height, normalizedSus = 0, 0, 0, 0
+							local HAHA = playerArrows.scale
 							
-							topX = Song.Notes[ index ].x * HAHA
-							topY = Song.Notes[ index ].y * HAHA - Song.Notes[ index ].SustainTime * HAHA
 							width = playerArrows.width * HAHA
-							height = Song.Notes[ index ].SustainTime * HAHA + Song.Notes[ index ].height / 2 * HAHA
+							height = Song.Notes[ index ].y * HAHA + ( Song.Notes[ index ].height / 2 ) * HAHA
+							normalizedSus = Song.Notes[ index ].SustainTime * 2 * HAHA
+							
+							local finalY = ( Song.Notes[ index ].y / 50 - normalizedSus * ingame.usershit[ 'Game' ][ 'scrollSpeed' ] )
 							
 							-- while scale y is 50, the sustain sprite will scroll down for a long time
 							-- so we "clip" it to the note arrow sprite
-							love.graphics.setScissor( topX, topY, curr_width * 50, height )
+							if Song.Notes[ index ].Visible and Song.Notes[ index ].y > 0 then
+								love.graphics.setScissor( 0, 0, curr_width * 50, height )
+							end
 							
 							-- then, if note is player's and player hit it, and the sustain is still visible
 							-- since they'll be invisible and can't be hit anymore if you let go while they're
 							-- still going; clip it to the strumline instead
 							
-							-- cpu gets to clip it everytime, obviously
-							if
-								Song.Notes[ index ].MustHit and Song.Notes[ index ].WasHit
-							or
-								not Song.Notes[ index ].MustHit
-							then
-								love.graphics.intersectScissor( 0, 0, curr_width * 50, playerArrows.y )
-							end
-							
 							Song.Notes[ index ].Sustain.Animation:draw(
 								assets.images[ 'NOTE_assets' ],
 								Song.Notes[ index ].x + Song.Notes[ index ].Sustain.width,
-								( Song.Notes[ index ].y / 50 ) - Song.Notes[ index ].SustainTime / 50
+								finalY
 							)
 							
 							love.graphics.setScissor( )
 							
 							love.graphics.pop( )
 							
+							--[[
 							-- also clip the little end piece too
 							if
 								Song.Notes[ index ].MustHit and Song.Notes[ index ].WasHit
@@ -421,14 +393,15 @@ function ingame:draw()
 							then
 								love.graphics.setScissor( 0, 0, curr_width, playerArrows.y )
 							end
+							--]]
+							
+							finalY = Song.Notes[ index ].y - normalizedSus * ingame.usershit[ 'Game' ][ 'scrollSpeed' ] * 50
 							
 							Song.Notes[ index ].Sustain.EndAnimation:draw(
 								assets.images[ 'NOTE_assets' ],
 								Song.Notes[ index ].x + Song.Notes[ index ].Sustain.width,
-								( Song.Notes[ index ].y  ) - Song.Notes[ index ].SustainTime - Song.Notes[ index ].height / 4
+								finalY - Song.Notes[ index ].height / 4
 							)
-							
-							love.graphics.setScissor( )
 						end
 						
 						-- only draw the notes when they're on the screen
@@ -456,42 +429,32 @@ function ingame:draw()
 	
 	deep.execute( )
 	
-	love.graphics.push( )
-	
-	love.graphics.scale( 0.08 )
-	
-	love.graphics.setFont( assets.fonts[ 'vcr' ] )
-	
-	-- information about the engine
-	outlinedText( 'Funkin\' ( 0.1b BETA ) with Löve2D ( 11.4 )', 5 / 0.08, curr_height / 0.08 - love.graphics.getFont( ):getHeight( ) - 5 )
-	
-	love.graphics.pop( )
-	
 	ingame.cam:detach( )
 end
 
 function ingame:keypressed( key, scancode, isrepeat )
-	if not ingame.active then return end
-	
 	ingame.Stage.onKeyPress( key, isrepeat )
 	
 	-- HERE WE GO
-	if table.contains( ingame.keys, key ) and not isrepeat then
+	if ( key == 'a' or key == 's' or key == 'kp4' or key == 'kp5' ) and not isrepeat then
+	
+		-- hardcoded for now, change later, fool
+		local keyz = { 'a', 's', 'kp4', 'kp5' }
 		
 		-- default to pressed animation when not hitting a note
-		if key == ingame.keys[ 1 ] then
+		if key == 'a' then
 			playerArrows[ 1 ].curAnim = 'Pressed'
 			playerArrows[ 1 ][ 'Pressed' ]:gotoFrame( 1 )
 			playerArrows[ 1 ][ 'Pressed' ]:resume( )
-		elseif key == ingame.keys[ 2 ] then
+		elseif key == 's' then
 			playerArrows[ 2 ].curAnim = 'Pressed'
 			playerArrows[ 2 ][ 'Pressed' ]:gotoFrame( 1 )
 			playerArrows[ 2 ][ 'Pressed' ]:resume( )
-		elseif key == ingame.keys[ 3 ] then
+		elseif key == 'kp4' then
 			playerArrows[ 3 ].curAnim = 'Pressed'
 			playerArrows[ 3 ][ 'Pressed' ]:gotoFrame( 1 )
 			playerArrows[ 3 ][ 'Pressed' ]:resume( )
-		elseif key == ingame.keys[ 4 ] then
+		elseif key == 'kp5' then
 			playerArrows[ 4 ].curAnim = 'Pressed'
 			playerArrows[ 4 ][ 'Pressed' ]:gotoFrame( 1 )
 			playerArrows[ 4 ][ 'Pressed' ]:resume( )
@@ -520,7 +483,7 @@ function ingame:keypressed( key, scancode, isrepeat )
 				-- now on are 5 and above, not very useful so we do this
 				local trueLane = note.Lane - 4
 				
-				if ingame.keys[ trueLane ] ~= nil and ingame.keys[ trueLane ] == key then
+				if keyz[ trueLane ] ~= nil and keyz[ trueLane ] == key then
 					-- print( math.abs( note.Time ) )
 					
 					for idx = index + 1, #Song.Notes do
@@ -530,8 +493,9 @@ function ingame:keypressed( key, scancode, isrepeat )
 						end
 					end
 					
-					if not table.contains( fuckThisNote, index ) and not table.contains( possibleHits, index ) then
-						table.insert( possibleHits, index )
+					if not table.contains( fuckThisNote, index ) and not hasHitAlready[ keyz[ trueLane ] ] then
+						playerArrows[ trueLane ].curAnim = 'Hit'
+						goodNoteHit( Song.Notes[ index ] )
 					end
 				end
 			end
@@ -544,16 +508,7 @@ function ingame:keypressed( key, scancode, isrepeat )
 			end
 		end
 		
-		if possibleHits ~= nil and #possibleHits > 0 then
-			local trueLane = Song.Notes[ possibleHits[ 1 ] ].Lane - 4
-			
-			playerArrows[ trueLane ].curAnim = 'Hit'
-			goodNoteHit( Song.Notes[ possibleHits[ 1 ] ] )
-			possibleHits = { }
-		end
-		
 	--[[ -------------------------------------- ]] --
-	
     elseif key == 'kp+' then
 		Conductor.offset = Conductor.offset + 1
 	elseif key == 'kp-' then
@@ -563,10 +518,26 @@ function ingame:keypressed( key, scancode, isrepeat )
 		
 		FUNISINFINITE( )
 		
-		local usershit = inifile.parse( 'userconf.ini' )
-		usershit[ 'Game' ][ 'globalOffset' ] = Conductor.offset
+		local cock = { }
+		cock.Personal = { }
+		cock.Game = { }
+		cock.Keys = { }
 		
-		inifile.save( 'userconf.ini', usershit )
+		cock.Personal.name = cock[ 'Personal' ][ 'name' ]
+		cock.Personal.favDifficulty = cock[ 'Personal' ][ 'favDifficulty' ]
+		cock.Personal.favBoyfriend = cock[ 'Personal' ][ 'favBoyfriend' ]
+		cock.Personal.favGirlfriend = cock[ 'Personal' ][ 'favGirlfriend' ]
+		
+		cock.Game.globalOffset = cock[ 'Game' ][ 'globalOffset' ]
+		cock.Game.scrollSpeed = cock[ 'Game' ][ 'scrollSpeed' ]
+		cock.Game.downScroll = cock[ 'Game' ][ 'downScroll' ]
+		
+		cock.Keys.leftArrow = cock[ 'Keys' ][ 'leftArrow' ]
+		cock.Keys.upArrow = cock[ 'Keys' ][ 'upArrow' ]
+		cock.Keys.downArrow = cock[ 'Keys' ][ 'downArrow' ]
+		cock.Keys.rightArrow = cock[ 'Keys' ][ 'rightArrow' ]
+		
+		inifile.save( 'userconf.ini', cock )
 		
 		love.event.quit( 'restart' )
 	elseif key == 'space' then
@@ -584,39 +555,30 @@ function ingame:keypressed( key, scancode, isrepeat )
 end
 
 function ingame:keyreleased( key )
-	if not ingame.active then return end
-
-	if table.contains( ingame.keys, key ) then
-		if key == ingame.keys[ 1 ] then
+	if key == 'a' or 's' or 'num4' or 'num5' then
+		if key == 'a' then
 			playerArrows[ 1 ].curAnim = 'Idle'
 			
-		elseif key == ingame.keys[ 2 ] then
+		elseif key == 's' then
 			playerArrows[ 2 ].curAnim = 'Idle'
 			
-		elseif key == ingame.keys[ 3 ] then
+		elseif key == 'kp4' then
 			playerArrows[ 3 ].curAnim = 'Idle'
 			
-		elseif key == ingame.keys[ 4 ] then
+		elseif key == 'kp5' then
 			playerArrows[ 4 ].curAnim = 'Idle'
 			
 		end
 	end
 end
 
-beatHandler = Event.on( 'beatHit',
-	function( )
-		if not ingame.active then return end
-		
-		beatz = beatz + 1
-		
-		if beatz % 2 == 0 then
-			flux.to( ingame.cam.focus, 0.05, { zoom = 1.01 } )
-			:ease( 'cubicinout' )
-			:after( ingame.cam.focus, 0.05, { zoom = 1 } )
-			:ease( 'cubicinout' )
-		end
+local sickBeatz = 0
+function Conductor:beatHit( )
+	if sickBeatz % 2 == 0 then
+		-- print( 'HEY' )
 	end
-)
+	sickBeatz = sickBeatz + 1
+end
 
 --[[ -------------------------------------- ]] --
 
@@ -640,12 +602,12 @@ end
 
 function makeMagic( shit )
 	if shit ~= nil then
-		local usershit = inifile.parse( 'userconf.ini' )
+		local shite = inifile.parse( 'userconf.ini' )
 		
 		Conductor.bpm = shit.BPM
-		Conductor.offset = usershit[ 'Game' ][ 'globalOffset' ] + Song.Metadata.Offset
+		Conductor.offset = shite[ 'Game' ][ 'globalOffset' ]
 		
-		usershit = nil
+		shite = nil
 		
 		if shit.HasVoices then vocalShit = assets.songs[ ingame.curSong .. '_vocals' ] end
 		instrumentalShit = assets.songs[ ingame.curSong .. '_voices' ]
@@ -869,33 +831,6 @@ function goodNoteHit( note )
 		print( 'Goot note hit called for null note, the fuck?' )
 	end
 end
-
---[[
--- bad idea
-function deleteNote( noteTime )
-	noteTime = noteTime or nil
-	
-    for index = 1, #Song.Notes do
-		if Song.Notes[ index ] ~= nil and Song.Notes[ index ].Time == noteTime then
-			Song.Notes[ index ] = nil
-			
-			-- stop searching when note has been found already
-			-- so this shit doesn't goof up somehow
-			break
-		end
-	end
-end
---]]
-
---[[
--- bad idea too
-function collisionCheck( x1,y1,w1,h1, x2,y2,w2,h2 )
-  return x1 < x2+w2 and
-         x2 < x1+w1 and
-         y1 < y2+h2 and
-         y2 < y1+h1
-end
---]]
 
 -- copped from https://developer.roblox.com/en-us/articles/Cloning-tables
 function deepCopy( orig, copies )

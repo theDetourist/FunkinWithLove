@@ -155,7 +155,7 @@ function intro:update( dt )
 					
 					local emoWidth, emoHeight = stressedData.Emoji.image:getDimensions( )
 					
-					love.graphics.draw( stressedData.Emoji.image, curr_width / 2 / stressedData.Emoji.scale - emoWidth / 2, curr_height / 2 / stressedData.Emoji.scale - emoHeight / 2 )
+					love.graphics.draw( stressedData.Emoji.image, curr_width / 2 / stressedData.Emoji.scale - emoWidth / 2 + 20, curr_height / 2 / stressedData.Emoji.scale - emoHeight / 2 - 15 )
 					
 					love.graphics.pop( )
 					
@@ -170,7 +170,7 @@ function intro:update( dt )
 					-- for tweening it away
 					love.graphics.setColor( 1, 1, 1, stressedData.Hands.alpha )
 					
-					love.graphics.draw( stressedData.Hands.image, curr_width / 2 / stressedData.Hands.scale - handWidth / 2, curr_height / 2 / stressedData.Hands.scale - handHeight / 2 )
+					love.graphics.draw( stressedData.Hands.image, curr_width / 2 / stressedData.Hands.scale - handWidth / 2 + 20, curr_height / 2 / stressedData.Hands.scale - handHeight / 2 )
 					
 					love.graphics.setColor( 1, 1, 1, 1 )
 					
@@ -180,13 +180,13 @@ function intro:update( dt )
 					
 					love.graphics.push( )
 					
-					love.graphics.scale( 0.1 )
+					love.graphics.scale( 0.65 )
 				
 					local width, height = loveData[ 2 ]:getDimensions( )
 					
 					love.graphics.setColor( 1, 1, 1, loveData.alpha )
 					
-					love.graphics.draw( loveData[ 2 ], curr_width / 2 / 0.1 - width / 2, curr_height / 2 / 0.1 - height / 2 )
+					love.graphics.draw( loveData[ 2 ], curr_width / 2 / 0.65 - width / 2 + 15, curr_height / 2 / 0.65 - height / 2 )
 					
 					love.graphics.setColor( 1, 1, 1, 1 )
 					
@@ -211,7 +211,7 @@ function intro:update( dt )
 				
 				love.graphics.scale( logoData.scale )
 				
-				love.graphics.draw( assets.images[ 'logo' ], ( curr_width / 2 / logoData.scale ) - assets.images[ 'logo' ]:getWidth( ) / 2, 100 / logoData.scale - assets.images[ 'logo' ]:getHeight( ) / 2 )
+				love.graphics.draw( assets.images[ 'logo' ], ( curr_width / 2 / logoData.scale ) - assets.images[ 'logo' ]:getWidth( ) / 2, 130 / logoData.scale - assets.images[ 'logo' ]:getHeight( ) / 2 )
 				
 				love.graphics.pop( )
 				
