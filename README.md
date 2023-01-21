@@ -1,5 +1,5 @@
 # Funkin' With Löve2D
-Current version: 0.0.3 (01 / 16/ 22)
+Current version: 0.0.3 ( 01 / 16 / 22 )
 
 ![Functional gameplay with early sustains as of 0.0.3](https://user-images.githubusercontent.com/44783518/149680749-451e3b54-1523-4dce-9085-ba1daa359ab9.gif)
 
